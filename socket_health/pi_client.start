@@ -1,0 +1,27 @@
+#!/bin/bash
+if [[ ! -e /opt/pi_client/pi_clt.pid ]]; then
+    touch /opt/pi_client/pi_clt.pid
+fi
+
+source /opt/pi_client/client.conf  
+
+prepid=`cat /opt/pi_client/pi_clt.pid`
+
+if test -n $prepid ; then
+    ps -ef | grep -w ${prepid} | grep pi_clt > /dev/null 
+    if [[ $? == 0 ]]; then
+        echo "pi_clt has already started."
+    else 
+        echo "pi_clt is starting.."
+        pi_clt
+        echo "pi_clt has started."
+    fi
+else 
+    echo "pi_clt is starting.."
+    pi_clt
+    echo "pi_clt has started."
+fi
+
+pid=`ps -ef | awk '{if ($8 == "pi_clt") print $2}'`
+echo $pid > /opt/pi_client/pi_clt.pid
+

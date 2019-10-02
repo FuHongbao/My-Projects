@@ -1,0 +1,8 @@
+#!/bin/bash 
+declare -a pids
+kill -9 $pids
+echo "pi_clt has stoped."
+echo ' ' > /opt/pi_client/pi_clt.pid 
+
+
+

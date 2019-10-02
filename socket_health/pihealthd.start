@@ -1,0 +1,27 @@
+#!/bin/bash
+if [[ ! -e /opt/pi_master/pi_mst.pid ]]; then
+    touch /opt/pi_master/pi_mst.pid
+fi
+
+source /opt/pi_master/master.conf 
+
+prepid=`cat /opt/pi_master/pi_mst.pid`
+
+if test -n $prepid ; then
+    ps -ef | grep -w ${prepid} | grep pi_mst > /dev/null 
+    if [[ $? == 0 ]]; then
+        echo "pi_mst has already started."
+    else 
+        echo "pi_mst is starting.."
+        pi_mst
+        echo "pi_mst has started."
+    fi
+else 
+    echo "pi_mst is starting.."
+    pi_mst
+    echo "pi_mst has started."
+fi
+
+pid=`ps -ef | awk '{if ($8 == "pi_mst") print $2}'`
+echo $pid > /opt/pi_master/pi_mst.pid
+
