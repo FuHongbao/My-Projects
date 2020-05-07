@@ -8,15 +8,21 @@
 #include "threadpool.h"
 
 void *thread_routine(void *arg) {
+    struct timespec stime;
     threadpool_t *pool = (threadpool_t*)arg;
+    int timeout = 0;
     while (1) {
         pthread_mutex_lock(&pool->mutex);
         pool->idle += 1;
         while (pool->first == NULL && !pool->quit) {
-            pthread_cond_wait(&pool->not_empty, &pool->mutex);
+            stime.tv_sec += 2;
+            timeout = pthread_cond_timedwait(&pool->not_empty, &pool->mutex, &stime);
+            if (timeout == ETIMEDOUT) {
+                break;
+            }
         }
         pool->idle -= 1;
-        if (pool->quit) {
+        if (pool->quit || timeout == ETIMEDOUT) {
             pthread_mutex_unlock(&pool->mutex);
             pthread_exit(NULL);
         } 
@@ -38,6 +44,14 @@ void *thread_routine(void *arg) {
     return NULL;
 }
 
+int is_thread_alive(pthread_t pth) {
+    int kill_rc = pthread_kill(pth, 0);
+    if (kill_rc == ESRCH) {
+        return 0;
+    }
+    return 1;
+}
+
 int thread_add_task(threadpool_t *pool, void *(*run)(void *args), void *argv) {
     task_t *newtask = (task_t*) malloc(sizeof(task_t));
     newtask->run = run;
@@ -57,6 +71,16 @@ int thread_add_task(threadpool_t *pool, void *(*run)(void *args), void *argv) {
     }
     if (pool->idle > 0) {
         pthread_cond_signal(&pool->not_empty);
+    } else if (pool->count < pool->max_threads) {
+        int cnt = 0;
+        for (int i = 0; i < pool->max_threads; i++) {
+            int ret = is_thread_alive(pool->pth[i]);
+            if (!ret) {
+                pthread_create(&pool->pth[i], NULL, thread_routine, pool);
+                cnt++;
+            } 
+            if (cnt == DEFAULTADDCOUNT) break;
+        }
     } 
     pthread_mutex_unlock(&pool->mutex);
     return 0;

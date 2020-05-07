@@ -12,8 +12,11 @@
 #include <string.h>
 #include <errno.h>
 #include <time.h>
+#include <signal.h>
 #include <pthread.h>
+#define DEFAULTADDCOUNT 5
 #endif
+
 typedef struct task {
     void *(*run)(void *arg);
     void *argv;
@@ -28,11 +31,11 @@ typedef struct threadpool {
     pthread_t *pth;
     int count, idle;  //idle为空闲线程数
     int max_threads;  //最大线程数
+    int min_threads;  //最小线程数
     int quit;         //退出标识
 } threadpool_t;
 
 threadpool_t pool;
-
 void threadpool_init(threadpool_t *pool, int max_threads);
 int thread_add_task(threadpool_t *pool, void *(*run)(void *args), void *argv);
 void threadpool_destroy(threadpool_t *pool);
